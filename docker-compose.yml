@@ -1,27 +1,39 @@
 version: '3.8'
+
 services:
   mongodb:
     image: mongo:6
     container_name: mongo
     restart: unless-stopped
+    networks:
+      - observability
     volumes:
       - mongo_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USER:-admin}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD:-admin}
 
   opensearch:
     image: opensearchproject/opensearch:2.11.1
     container_name: opensearch
+    networks:
+      - observability
     environment:
       - discovery.type=single-node
       - plugins.security.disabled=true
       - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+      - bootstrap.memory_lock=true
     ulimits:
       memlock:
         soft: -1
         hard: -1
-    ports:
-      - "9200:9200"
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
     healthcheck:
-      test: ["CMD-SHELL", "curl -s http://localhost:9200 >/dev/null"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 20
@@ -29,69 +41,137 @@ services:
   graylog:
     image: graylog/graylog:5.2
     container_name: graylog
+    networks:
+      - observability
     depends_on:
-      - mongodb
-      - opensearch
+      opensearch:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
     environment:
       - GRAYLOG_PASSWORD_SECRET=${GRAYLOG_PASSWORD_SECRET}
       - GRAYLOG_ROOT_PASSWORD_SHA2=${GRAYLOG_ROOT_PASSWORD_SHA2}
-      - GRAYLOG_HTTP_EXTERNAL_URI=http://localhost:9000/
+      - GRAYLOG_HTTP_BIND_ADDRESS=0.0.0.0:9000
+      - GRAYLOG_HTTP_EXTERNAL_URI=${GRAYLOG_EXTERNAL_URI:-http://localhost:9000/}
+      - GRAYLOG_MONGODB_URI=mongodb://mongo:27017/graylog
       - GRAYLOG_ELASTICSEARCH_HOSTS=http://opensearch:9200
     entrypoint: /usr/bin/tini -- /docker-entrypoint.sh
+    volumes:
+      - graylog_data:/usr/share/graylog/data
     ports:
-      - "9000:9000"   # Graylog web
-      - "12201:12201/udp" # GELF UDP
+      - "${GRAYLOG_PORT:-9000}:9000"
+      - "12201:12201/udp"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9000/api/system/lbstatus || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
 
   graylog-setup:
     image: curlimages/curl:8.10.1
     container_name: graylog-setup
+    networks:
+      - observability
     depends_on:
-      - graylog
-    entrypoint: ["/bin/sh","-c","/scripts/setup.sh"]
+      graylog:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c", "/scripts/setup.sh"]
     volumes:
       - ./graylog-setup:/scripts
     environment:
       - GRAYLOG_URI=http://graylog:9000/api
       - GRAYLOG_USER=admin
       - GRAYLOG_PASS=admin
+    restart: on-failure
 
   demo-app:
-    build: ./app
+    build: 
+      context: ./app
+      dockerfile: Dockerfile
     container_name: demo-app
+    networks:
+      - observability
     environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
       - GELF_HOST=graylog
       - GELF_PORT=12201
       - APP_NAME=demo-app
+      - PUBLIC_GRAFANA_URL=${PUBLIC_GRAFANA_URL:-http://localhost:3001}
+      - PUBLIC_PROMETHEUS_URL=${PUBLIC_PROMETHEUS_URL:-http://localhost:9090}
+      - PUBLIC_GRAYLOG_URL=${PUBLIC_GRAYLOG_URL:-http://localhost:9000}
     ports:
-      - "3000:3000"
+      - "${APP_PORT:-3000}:3000"
     depends_on:
       - graylog
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   prometheus:
     image: prom/prometheus:v2.53.0
     container_name: prometheus
-    command: ["--config.file=/etc/prometheus/prometheus.yml", "--storage.tsdb.retention.time=2d"]
+    networks:
+      - observability
+    command: 
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=7d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
+      - "--web.enable-lifecycle"
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
     ports:
-      - "9090:9090"
+      - "${PROMETHEUS_PORT:-9090}:9090"
     depends_on:
-      - demo-app
+      demo-app:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:9090/-/healthy || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
   grafana:
     image: grafana/grafana:11.2.0
     container_name: grafana
+    networks:
+      - observability
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - GF_SERVER_ROOT_URL=${GRAFANA_ROOT_URL:-http://localhost:3001}
+      - GF_INSTALL_PLUGINS=
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
     ports:
-      - "3001:3000"
+      - "${GRAFANA_PORT:-3001}:3000"
     depends_on:
-      - prometheus
+      prometheus:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/api/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  observability:
+    driver: bridge
 
 volumes:
   mongo_data:
+  opensearch_data:
+  graylog_data:
+  prometheus_data:
   grafana_data:

@@ -4,45 +4,77 @@
   <meta charset="utf-8" />
   <title>Observability Demo</title>
   <style>
-    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem; }
-    a.button, button { display: inline-block; padding: 0.75rem 1rem; background: #0f62fe; color: white; text-decoration: none; border: 0; border-radius: 6px; cursor: pointer; }
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; margin: 2rem; background: #f5f5f5; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; max-width: 1400px; margin: 0 auto; }
+    a.button, button { display: inline-block; padding: 0.75rem 1rem; background: #0f62fe; color: white; text-decoration: none; border: 0; border-radius: 6px; cursor: pointer; font-size: 0.95rem; width: 100%; text-align: center; margin: 0.25rem 0; }
     a.button.secondary { background: #555; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1rem; }
-    .small { color: #666; font-size: 0.9rem; }
+    a.button:hover, button:hover { opacity: 0.9; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1.5rem; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .small { color: #666; font-size: 0.9rem; margin-top: 0.5rem; }
+    h1 { text-align: center; color: #333; }
+    h3 { margin-top: 0; color: #0f62fe; }
+    input[type="number"] { padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; width: 100%; margin-bottom: 0.5rem; }
+    .header { text-align: center; margin-bottom: 2rem; }
+    .status { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.85rem; background: #24a148; color: white; }
   </style>
 </head>
 <body>
-  <h1>Observability Demo</h1>
-  <p>Use the controls below to generate metrics and logs. Navigate to monitoring UIs via the buttons.</p>
+  <div class="header">
+    <h1>🔍 Observability Demo Platform</h1>
+    <p>Full-stack monitoring with Prometheus, Grafana, and Graylog</p>
+    <span class="status" id="status">● ONLINE</span>
+  </div>
   <div class="grid">
     <div class="card">
-      <h3>Generate Traffic</h3>
-      <p class="small">Starts N simulated work operations. Some will error intentionally.</p>
+      <h3>🚀 Generate Traffic</h3>
+      <p class="small">Simulate N work operations. ~10% will error for testing.</p>
       <input id="count" type="number" min="1" max="500" value="100" />
       <button onclick="simulate()">Start Simulation</button>
       <div id="result" class="small"></div>
     </div>
     <div class="card">
-      <h3>Endpoints</h3>
-      <p><a class="button secondary" href="/metrics" target="_blank">/metrics</a></p>
-      <p><a class="button secondary" href="/work" target="_blank">/work</a></p>
-      <p><a class="button secondary" href="/health" target="_blank">/health</a></p>
+      <h3>📊 API Endpoints</h3>
+      <p><a class="button secondary" href="/metrics" target="_blank">📈 /metrics (Prometheus)</a></p>
+      <p><a class="button secondary" href="/work" target="_blank">⚙️ /work (Single Job)</a></p>
+      <p><a class="button secondary" href="/health" target="_blank">💚 /health (Status)</a></p>
+      <p><a class="button secondary" href="/config" target="_blank">⚙️ /config (Endpoints)</a></p>
     </div>
     <div class="card">
-      <h3>Monitoring UIs</h3>
-      <p><a class="button" href="http://localhost:3001" target="_blank">Grafana</a></p>
-      <p><a class="button" href="http://localhost:9090" target="_blank">Prometheus</a></p>
-      <p><a class="button" href="http://localhost:9000" target="_blank">Graylog</a></p>
+      <h3>🎯 Monitoring Tools</h3>
+      <p><a class="button" id="grafana-link" href="#" target="_blank">📊 Grafana Dashboard</a></p>
+      <p><a class="button" id="prometheus-link" href="#" target="_blank">🔥 Prometheus Metrics</a></p>
+      <p><a class="button" id="graylog-link" href="#" target="_blank">📝 Graylog Logs</a></p>
     </div>
   </div>
   <script>
+    // Fetch config and update links
+    async function loadConfig() {
+      try {
+        const res = await fetch('/config');
+        const config = await res.json();
+        document.getElementById('grafana-link').href = config.grafana_url;
+        document.getElementById('prometheus-link').href = config.prometheus_url;
+        document.getElementById('graylog-link').href = config.graylog_url;
+        document.getElementById('status').textContent = '● ' + config.environment.toUpperCase();
+      } catch (e) {
+        console.error('Failed to load config', e);
+      }
+    }
+
     async function simulate() {
       const count = document.getElementById('count').value || 100;
-      const res = await fetch('/simulate?count=' + count);
-      const data = await res.json();
-      document.getElementById('result').innerText = JSON.stringify(data);
+      const resultDiv = document.getElementById('result');
+      resultDiv.textContent = 'Starting...';
+      try {
+        const res = await fetch('/simulate?count=' + count);
+        const data = await res.json();
+        resultDiv.textContent = '✓ ' + JSON.stringify(data);
+      } catch (e) {
+        resultDiv.textContent = '✗ Error: ' + e.message;
+      }
     }
+
+    loadConfig();
   </script>
 </body>
 </html>
