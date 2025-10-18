@@ -1,0 +1,37 @@
+{
+  "title": "Demo App Overview",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests",
+      "targets": [
+        {
+          "expr": "sum by (status) (rate(demo_http_requests_total[1m]))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "options": { "legend": { "displayMode": "table" } },
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 }
+    },
+    {
+      "type": "timeseries",
+      "title": "Work Duration",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(demo_work_duration_seconds_bucket[5m])) by (le))",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          }
+        }
+      ],
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 }
+    }
+  ],
+  "schemaVersion": 36,
+  "version": 1
+}

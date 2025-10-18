@@ -1,0 +1,14 @@
+{
+  "name": "Demo App",
+  "version": "1.0.0",
+  "mcpServers": {
+    "demo": {
+      "command": "node",
+      "args": ["src/index.js"],
+      "env": {
+        "PORT": "3000"
+      },
+      "cwd": "./app"
+    }
+  }
+}
