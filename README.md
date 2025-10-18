@@ -1,236 +1,254 @@
-# Observability Demo Platform 🔍
+# Observability Demo Platform
 
-A production-ready observability stack with Prometheus, Grafana, and Graylog integrated with a demo application.
+🌐 **Live Demo**: https://anldrms.github.io/observability-demo/
 
-## 🌟 Features
+A production-ready observability stack with Prometheus, Grafana, and Graylog.
 
-- **Demo Web App**: Express.js app with simulated traffic generation
-- **Prometheus**: Metrics collection and time-series storage
-- **Grafana**: Pre-configured dashboards for visualization
-- **Graylog**: Centralized log aggregation with OpenSearch backend
-- **MongoDB**: Graylog metadata storage
-- **Cloud-Ready**: Environment-based configuration for easy deployment
+## ✨ New: GitHub Pages Deployment
 
-## 🚀 Quick Start (Local)
+The frontend is now available as a **static site on GitHub Pages**! No backend required to try the UI.
 
-### Prerequisites
-- Docker & Docker Compose
-- 8GB+ RAM recommended
+### Quick Start
 
-### Run Locally
+1. **Visit the live site**: https://anldrms.github.io/observability-demo/
+2. **Deploy your backend** to any cloud platform (see below)
+3. **Configure** by entering your backend URL
+4. **Start monitoring**!
+
+## 🚀 Two-Part Architecture
+
+### Frontend (GitHub Pages - Free!)
+- Static HTML/CSS/JavaScript
+- No server required
+- Hosted on GitHub Pages
+- Live at: https://anldrms.github.io/observability-demo/
+
+### Backend (Your Cloud Platform)
+- Node.js Express API
+- Prometheus metrics
+- Graylog logging
+- Deploy to: Fly.io, Railway, Render, etc.
+
+## 📦 Quick Deploy
+
+### Option 1: Frontend Only (Try the UI)
+
+Just visit: https://anldrms.github.io/observability-demo/
+
+The UI works standalone and can be configured to connect to any backend.
+
+### Option 2: Full Stack (Frontend + Backend)
+
+#### Deploy Backend:
+
+```bash
+# Clone the repo
+git clone git@github.com:anldrms/observability-demo.git
+cd observability-demo
+
+# Deploy to Fly.io (easiest)
+./deploy-cloud.sh flyio
+
+# Or Railway
+./deploy-cloud.sh railway
+
+# Or run locally
+./deploy-cloud.sh local
+```
+
+#### Configure Frontend:
+
+1. Go to https://anldrms.github.io/observability-demo/
+2. Enter your backend URL (e.g., `https://your-app.fly.dev`)
+3. Click "Save Configuration"
+4. Start generating traffic!
+
+### Option 3: Full Local Development
 
 ```bash
 git clone git@github.com:anldrms/observability-demo.git
 cd observability-demo
-cp .env.example .env
-# Edit .env if needed (defaults work for local development)
 docker compose up -d --build
 ```
 
-### Access Services
+Access at:
+- Frontend: http://localhost:3000
+- Grafana: http://localhost:3001
+- Prometheus: http://localhost:9090
+- Graylog: http://localhost:9000
 
-- **App**: http://localhost:3000
-- **Grafana**: http://localhost:3001 (admin/admin)
-- **Prometheus**: http://localhost:9090
-- **Graylog**: http://localhost:9000 (admin/admin)
+## 🎯 Features
 
-## 📊 Using the Platform
+✅ **Frontend (GitHub Pages)**
+- Beautiful, responsive UI
+- Traffic simulation controls
+- Real-time status monitoring
+- Dynamic configuration
+- LocalStorage for settings
 
-1. Open http://localhost:3000
-2. Click "Start Simulation" to generate traffic
-3. View metrics in:
-   - Prometheus: http://localhost:9090/graph
-   - Grafana: http://localhost:3001 → Dashboards → Demo App Overview
-   - Graylog: http://localhost:9000 → Search (wait ~1 minute for logs)
+✅ **Backend (Cloud/Local)**
+- Express.js API server
+- Prometheus metrics endpoint
+- GELF logging to Graylog
+- Health checks
+- CORS enabled for GitHub Pages
 
-## ☁️ Cloud Deployment
+✅ **Monitoring Stack**
+- Prometheus (metrics collection)
+- Grafana (dashboards)
+- Graylog (log aggregation)
+- OpenSearch (log storage)
+- MongoDB (Graylog metadata)
 
-### Deploy to Fly.io (Recommended)
+## 📚 Documentation
 
-```bash
-# Install flyctl
-curl -L https://fly.io/install.sh | sh
-
-# Login
-fly auth login
-
-# Deploy the demo app
-fly launch --config fly.toml
-
-# Set environment variables
-fly secrets set \
-  GELF_HOST=your-graylog-host \
-  GELF_PORT=12201 \
-  PUBLIC_GRAFANA_URL=https://your-grafana.fly.dev \
-  PUBLIC_PROMETHEUS_URL=https://your-prometheus.fly.dev \
-  PUBLIC_GRAYLOG_URL=https://your-graylog.fly.dev
-
-# Deploy
-fly deploy
-```
-
-### Deploy Full Stack to Cloud
-
-For production deployment with all services, consider:
-
-1. **Kubernetes (Recommended for full stack)**
-   - Use Helm charts for Prometheus, Grafana, Graylog
-   - Deploy to GKE, EKS, or AKS
-   - See `k8s/` directory for manifests
-
-2. **Docker Swarm / Cloud Services**
-   - Deploy individual services to managed platforms
-   - Grafana Cloud for dashboards
-   - CloudWatch/Datadog for logs
-   - Update `.env` with public URLs
-
-3. **Railway / Render**
-   - Deploy app as web service
-   - Use environment variables for external monitoring services
-
-### Environment Variables for Cloud
-
-Update `.env` with your cloud URLs:
-
-```bash
-PUBLIC_GRAFANA_URL=https://grafana.yourapp.com
-PUBLIC_PROMETHEUS_URL=https://prometheus.yourapp.com
-PUBLIC_GRAYLOG_URL=https://graylog.yourapp.com
-GRAYLOG_EXTERNAL_URI=https://graylog.yourapp.com/
-```
+- **[GITHUB_PAGES.md](./GITHUB_PAGES.md)** - GitHub Pages deployment guide
+- **[QUICKSTART.md](./QUICKSTART.md)** - Get started in 1 command
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Detailed cloud deployment guides
+- **[API Documentation](#api-endpoints)** - Below
 
 ## 🏗️ Architecture
 
 ```
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│  Demo App   │─────▶│  Prometheus  │─────▶│   Grafana   │
-│  (Express)  │      │  (Metrics)   │      │ (Dashboard) │
-└─────────────┘      └──────────────┘      └─────────────┘
-      │
-      │ GELF/UDP
-      ▼
-┌─────────────┐      ┌──────────────┐
-│  Graylog    │◀────▶│ OpenSearch   │
-│   (Logs)    │      │  (Storage)   │
-└─────────────┘      └──────────────┘
-      │
-      ▼
-┌─────────────┐
-│  MongoDB    │
-│ (Metadata)  │
-└─────────────┘
+┌──────────────────────┐
+│   GitHub Pages       │  ← Free static hosting
+│   (Frontend UI)      │     https://anldrms.github.io/...
+└──────────┬───────────┘
+           │ CORS-enabled API calls
+           ▼
+┌──────────────────────┐
+│   Cloud Platform     │  ← Deploy to Fly.io, Railway, etc.
+│   (Express API)      │
+└──────────┬───────────┘
+           │
+    ┌──────┴──────┬──────────┐
+    ▼             ▼          ▼
+┌─────────┐  ┌─────────┐  ┌─────────┐
+│Prometheu│  │ Grafana │  │ Graylog │
+└─────────┘  └─────────┘  └─────────┘
 ```
 
-## 📁 Project Structure
+## 🔧 API Endpoints
 
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/` | GET | Web UI (served from backend) |
+| `/config` | GET | Get monitoring URLs configuration |
+| `/health` | GET | Health check with uptime |
+| `/metrics` | GET | Prometheus metrics |
+| `/work` | GET | Single simulated work operation |
+| `/simulate` | GET | Generate N operations (?count=100) |
+
+## 🌐 Environment Variables
+
+### Backend Configuration
+
+```bash
+# Application
+NODE_ENV=production
+PORT=3000
+
+# Logging
+GELF_HOST=graylog
+GELF_PORT=12201
+
+# Public URLs (for frontend)
+PUBLIC_GRAFANA_URL=https://grafana.yourapp.com
+PUBLIC_PROMETHEUS_URL=https://prometheus.yourapp.com
+PUBLIC_GRAYLOG_URL=https://graylog.yourapp.com
 ```
-observability-demo/
-├── app/                    # Demo Node.js application
-│   ├── src/
-│   │   ├── index.js       # Main server
-│   │   └── public/        # Frontend
-│   ├── Dockerfile
-│   └── package.json
-├── prometheus/
-│   └── prometheus.yml     # Prometheus config
-├── grafana/
-│   └── provisioning/      # Auto-provisioned datasources & dashboards
-├── graylog-setup/
-│   └── setup.sh           # Auto-creates GELF input
-├── docker-compose.yml     # Full stack orchestration
-├── fly.toml              # Fly.io deployment config
-├── .env                   # Environment configuration
-└── README.md
+
+See `.env.example` for complete list.
+
+## 🔒 Security
+
+### CORS Configuration
+
+By default, CORS is enabled for all origins to work with GitHub Pages. For production:
+
+```javascript
+// Restrict to your domain only
+res.header('Access-Control-Allow-Origin', 'https://anldrms.github.io');
 ```
 
-## 🔧 Configuration
+### API Authentication
 
-### Ports
+Add API key authentication for production:
 
-| Service    | Port | Protocol |
-|------------|------|----------|
-| Demo App   | 3000 | HTTP     |
-| Grafana    | 3001 | HTTP     |
-| Prometheus | 9090 | HTTP     |
-| Graylog    | 9000 | HTTP     |
-| GELF       | 12201| UDP      |
-| OpenSearch | 9200 | HTTP     |
+```bash
+# Set environment variable
+API_KEY=your-secret-key
 
-### Credentials
+# In frontend, add header
+fetch(url, {
+  headers: { 'X-API-Key': 'your-secret-key' }
+});
+```
 
-All services use `admin/admin` by default (change in production).
+## 📊 Metrics
 
-### Metrics
+The demo app exposes these Prometheus metrics:
 
-The demo app exposes Prometheus metrics at `/metrics`:
-- `demo_http_requests_total` - HTTP request counter
+- `demo_http_requests_total` - HTTP request counter (by route, method, status)
 - `demo_work_duration_seconds` - Work duration histogram
-- `demo_errors_total` - Error counter
-- Standard Node.js metrics (CPU, memory, etc.)
+- `demo_errors_total` - Error counter (by type)
+- `process_*` - Standard Node.js process metrics
+- `nodejs_*` - Node.js runtime metrics
 
-### Logs
+## 📝 Logs
 
 Logs are sent via GELF UDP to Graylog:
-- Application logs
+
+- Application startup/shutdown
 - Request logs with duration
-- Error logs with stack traces
+- Error logs with details
+- Simulated work operations
 
 ## 🛠️ Development
 
-### Run App Standalone
+### Frontend Development
+
+```bash
+cd docs
+python3 -m http.server 8000
+# Open http://localhost:8000
+```
+
+### Backend Development
 
 ```bash
 cd app
 npm install
 npm start
+# API at http://localhost:3000
 ```
 
-### Build Docker Image
+### Full Stack Development
 
 ```bash
-docker build -t observability-demo-app ./app
-docker run -p 3000:3000 \
-  -e GELF_HOST=localhost \
-  -e GELF_PORT=12201 \
-  observability-demo-app
+docker compose up -d
+# All services available
 ```
-
-### MCP Server
-
-The app can run as an MCP server:
-
-```bash
-# See mcp.json for configuration
-node app/src/index.js
-```
-
-## 📝 API Endpoints
-
-| Endpoint    | Method | Description                           |
-|-------------|--------|---------------------------------------|
-| `/`         | GET    | Web UI                                |
-| `/config`   | GET    | Get public URLs configuration         |
-| `/health`   | GET    | Health check                          |
-| `/metrics`  | GET    | Prometheus metrics                    |
-| `/work`     | GET    | Single simulated work operation       |
-| `/simulate` | GET    | Generate N operations (?count=100)    |
 
 ## 🐛 Troubleshooting
 
-### Graylog Not Starting
-- Increase Docker memory to 8GB+
-- Wait 2-3 minutes for OpenSearch to initialize
-- Check logs: `docker logs graylog`
+### Frontend Can't Connect to Backend
 
-### No Logs in Graylog
-- Verify GELF input created: Graylog → System → Inputs
-- Check container networking: `docker network inspect observability-demo_observability`
-- Verify app can reach Graylog: `docker exec demo-app ping graylog`
+1. Check CORS is enabled on backend
+2. Verify backend URL is correct
+3. Ensure backend is running: `curl https://your-backend/health`
+4. Check browser console for errors
 
-### Metrics Not Appearing
-- Check Prometheus targets: http://localhost:9090/targets
-- Verify app /metrics endpoint: http://localhost:3000/metrics
-- Check Prometheus config: `docker exec prometheus cat /etc/prometheus/prometheus.yml`
+### GitHub Pages Not Updating
+
+1. Check Settings → Pages is enabled
+2. Verify source is set to `main` branch, `/docs` folder
+3. Check Actions tab for build status
+4. Clear browser cache
+
+### Backend Deployment Issues
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for platform-specific troubleshooting.
 
 ## 📄 License
 
@@ -238,15 +256,21 @@ MIT
 
 ## 🤝 Contributing
 
-Pull requests welcome! Please ensure:
-- Code follows existing style
-- All services start successfully
-- Documentation is updated
+Pull requests welcome! Please:
+- Follow existing code style
+- Test your changes locally
+- Update documentation
 
 ## 🔗 Links
 
-- [Prometheus Docs](https://prometheus.io/docs/)
-- [Grafana Docs](https://grafana.com/docs/)
-- [Graylog Docs](https://docs.graylog.org/)
-- [prom-client](https://github.com/siimon/prom-client)
-- [gelf-pro](https://github.com/kkamkou/node-gelf-pro)
+- **Live Demo**: https://anldrms.github.io/observability-demo/
+- **GitHub**: https://github.com/anldrms/observability-demo
+- **Issues**: https://github.com/anldrms/observability-demo/issues
+
+## ⭐ Star This Repo
+
+If you find this useful, please star the repo!
+
+---
+
+Built with ❤️ using Node.js, Express, Prometheus, Grafana, and Graylog

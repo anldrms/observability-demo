@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Observability Demo Platform</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+      color: white;
+    }
+
+    .header h1 {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 1.2rem;
+      opacity: 0.95;
+    }
+
+    .status-bar {
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      padding: 1.5rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .status-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline {
+      background: #ef4444;
+      animation: none;
+    }
+
+    .status-dot.checking {
+      background: #f59e0b;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .config-section {
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-bottom: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .config-section h2 {
+      margin-bottom: 1rem;
+      color: #667eea;
+    }
+
+    .input-group {
+      margin-bottom: 1rem;
+    }
+
+    .input-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #555;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.3s;
+    }
+
+    .input-group input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    .btn {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+    }
+
+    .btn:active {
+      transform: translateY(0);
+    }
+
+    .btn.secondary {
+      background: #6b7280;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.95);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      transition: transform 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+    }
+
+    .card h3 {
+      color: #667eea;
+      margin-bottom: 1rem;
+      font-size: 1.5rem;
+    }
+
+    .card p {
+      color: #6b7280;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .button-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .link-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.875rem;
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      text-decoration: none;
+      color: #374151;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+
+    .link-btn:hover {
+      border-color: #667eea;
+      background: #f9fafb;
+      color: #667eea;
+    }
+
+    .link-btn.primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+    }
+
+    .result-box {
+      margin-top: 1rem;
+      padding: 1rem;
+      background: #f3f4f6;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 0.875rem;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .alert {
+      padding: 1rem;
+      border-radius: 8px;
+      margin-bottom: 1rem;
+    }
+
+    .alert.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .alert.info {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+    }
+
+    .alert.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #6ee7b7;
+    }
+
+    .footer {
+      text-align: center;
+      color: white;
+      margin-top: 3rem;
+      opacity: 0.9;
+    }
+
+    .footer a {
+      color: white;
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .header h1 {
+        font-size: 2rem;
+      }
+      
+      .status-bar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔍 Observability Demo Platform</h1>
+      <p>Full-stack monitoring with Prometheus, Grafana, and Graylog</p>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-item">
+        <span class="status-dot checking" id="api-status"></span>
+        <strong id="api-status-text">Checking API...</strong>
+      </div>
+      <div class="status-item">
+        <span>Backend:</span>
+        <code id="backend-url">Not configured</code>
+      </div>
+    </div>
+
+    <div id="alert-container"></div>
+
+    <div class="config-section">
+      <h2>⚙️ Configuration</h2>
+      <p style="color: #6b7280; margin-bottom: 1.5rem;">
+        Set your backend API URL. Deploy the backend to Fly.io, Railway, or any cloud platform, then enter the URL here.
+      </p>
+      <div class="input-group">
+        <label for="api-url">Backend API URL</label>
+        <input 
+          type="text" 
+          id="api-url" 
+          placeholder="https://your-app.fly.dev" 
+          value=""
+        >
+      </div>
+      <button class="btn" onclick="saveConfig()">💾 Save Configuration</button>
+      <button class="btn secondary" onclick="testConnection()">🔌 Test Connection</button>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>🚀 Generate Traffic</h3>
+        <p>Simulate work operations to generate metrics and logs. About 10% will intentionally error for testing.</p>
+        <div class="input-group">
+          <label for="count">Number of Operations</label>
+          <input type="number" id="count" min="1" max="500" value="100">
+        </div>
+        <button class="btn" onclick="simulate()">Start Simulation</button>
+        <div class="result-box" id="simulate-result" style="display: none;"></div>
+      </div>
+
+      <div class="card">
+        <h3>📊 API Endpoints</h3>
+        <p>Direct access to backend API endpoints.</p>
+        <div class="button-group">
+          <a href="#" class="link-btn" id="link-metrics" target="_blank">📈 Prometheus Metrics</a>
+          <a href="#" class="link-btn" id="link-work" target="_blank">⚙️ Single Work Job</a>
+          <a href="#" class="link-btn" id="link-health" target="_blank">💚 Health Check</a>
+          <a href="#" class="link-btn" id="link-config" target="_blank">⚙️ Config Endpoint</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>📈 Monitoring Tools</h3>
+        <p>Access your monitoring dashboards.</p>
+        <div class="button-group">
+          <a href="#" class="link-btn primary" id="link-grafana" target="_blank">📊 Grafana Dashboard</a>
+          <a href="#" class="link-btn primary" id="link-prometheus" target="_blank">🔥 Prometheus UI</a>
+          <a href="#" class="link-btn primary" id="link-graylog" target="_blank">📝 Graylog Logs</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <p>
+        <strong>Observability Demo Platform</strong> | 
+        <a href="https://github.com/anldrms/observability-demo" target="_blank">GitHub</a> | 
+        <a href="https://github.com/anldrms/observability-demo/blob/main/DEPLOYMENT.md" target="_blank">Deploy Guide</a>
+      </p>
+      <p style="margin-top: 0.5rem; opacity: 0.8;">
+        Frontend hosted on GitHub Pages | Backend runs on your cloud platform
+      </p>
+    </div>
+  </div>
+
+  <script>
+    // Configuration management
+    const CONFIG_KEY = 'observability_demo_config';
+    let config = {
+      apiUrl: '',
+      grafanaUrl: '',
+      prometheusUrl: '',
+      graylogUrl: ''
+    };
+
+    // Load config from localStorage
+    function loadConfig() {
+      const saved = localStorage.getItem(CONFIG_KEY);
+      if (saved) {
+        config = JSON.parse(saved);
+        document.getElementById('api-url').value = config.apiUrl;
+        updateBackendUrl();
+        checkApiStatus();
+        fetchMonitoringUrls();
+      }
+    }
+
+    // Save config to localStorage
+    function saveConfig() {
+      const apiUrl = document.getElementById('api-url').value.trim();
+      if (!apiUrl) {
+        showAlert('Please enter a backend API URL', 'error');
+        return;
+      }
+
+      // Remove trailing slash
+      config.apiUrl = apiUrl.replace(/\/$/, '');
+      localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+      
+      updateBackendUrl();
+      showAlert('Configuration saved! Testing connection...', 'success');
+      
+      setTimeout(() => {
+        checkApiStatus();
+        fetchMonitoringUrls();
+      }, 500);
+    }
+
+    // Update backend URL display
+    function updateBackendUrl() {
+      document.getElementById('backend-url').textContent = config.apiUrl || 'Not configured';
+      
+      // Update API endpoint links
+      if (config.apiUrl) {
+        document.getElementById('link-metrics').href = `${config.apiUrl}/metrics`;
+        document.getElementById('link-work').href = `${config.apiUrl}/work`;
+        document.getElementById('link-health').href = `${config.apiUrl}/health`;
+        document.getElementById('link-config').href = `${config.apiUrl}/config`;
+      }
+    }
+
+    // Check API status
+    async function checkApiStatus() {
+      if (!config.apiUrl) {
+        updateStatus('offline', 'No backend configured');
+        return;
+      }
+
+      updateStatus('checking', 'Checking connection...');
+
+      try {
+        const response = await fetch(`${config.apiUrl}/health`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          updateStatus('online', `Backend online (${data.environment || 'unknown'})`);
+          return true;
+        } else {
+          updateStatus('offline', `Backend returned ${response.status}`);
+          return false;
+        }
+      } catch (error) {
+        updateStatus('offline', `Connection failed: ${error.message}`);
+        showAlert(`Cannot connect to backend. Make sure CORS is enabled and the URL is correct. Error: ${error.message}`, 'error');
+        return false;
+      }
+    }
+
+    // Fetch monitoring URLs from backend
+    async function fetchMonitoringUrls() {
+      if (!config.apiUrl) return;
+
+      try {
+        const response = await fetch(`${config.apiUrl}/config`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          config.grafanaUrl = data.grafana_url || '';
+          config.prometheusUrl = data.prometheus_url || '';
+          config.graylogUrl = data.graylog_url || '';
+          
+          // Update monitoring links
+          if (config.grafanaUrl) document.getElementById('link-grafana').href = config.grafanaUrl;
+          if (config.prometheusUrl) document.getElementById('link-prometheus').href = config.prometheusUrl;
+          if (config.graylogUrl) document.getElementById('link-graylog').href = config.graylogUrl;
+          
+          localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+        }
+      } catch (error) {
+        console.error('Failed to fetch monitoring URLs:', error);
+      }
+    }
+
+    // Update status indicator
+    function updateStatus(status, text) {
+      const dot = document.getElementById('api-status');
+      const textEl = document.getElementById('api-status-text');
+      
+      dot.className = 'status-dot ' + status;
+      textEl.textContent = text;
+    }
+
+    // Test connection
+    async function testConnection() {
+      const success = await checkApiStatus();
+      if (success) {
+        showAlert('✅ Connection successful! Backend is online.', 'success');
+        fetchMonitoringUrls();
+      }
+    }
+
+    // Simulate traffic
+    async function simulate() {
+      if (!config.apiUrl) {
+        showAlert('Please configure the backend API URL first', 'error');
+        return;
+      }
+
+      const count = document.getElementById('count').value || 100;
+      const resultBox = document.getElementById('simulate-result');
+      
+      resultBox.style.display = 'block';
+      resultBox.textContent = 'Starting simulation...';
+
+      try {
+        const response = await fetch(`${config.apiUrl}/simulate?count=${count}`, {
+          method: 'GET',
+          mode: 'cors'
+        });
+
+        const data = await response.json();
+        resultBox.textContent = JSON.stringify(data, null, 2);
+        
+        if (response.ok) {
+          showAlert(`✅ Simulation started! ${data.started} operations queued. Check your monitoring tools.`, 'success');
+        } else {
+          showAlert(`⚠️ Simulation request completed with status ${response.status}`, 'error');
+        }
+      } catch (error) {
+        resultBox.textContent = `Error: ${error.message}`;
+        showAlert(`Failed to start simulation: ${error.message}`, 'error');
+      }
+    }
+
+    // Show alert
+    function showAlert(message, type) {
+      const container = document.getElementById('alert-container');
+      const alert = document.createElement('div');
+      alert.className = `alert ${type}`;
+      alert.textContent = message;
+      
+      container.innerHTML = '';
+      container.appendChild(alert);
+      
+      setTimeout(() => {
+        alert.style.transition = 'opacity 0.3s';
+        alert.style.opacity = '0';
+        setTimeout(() => alert.remove(), 300);
+      }, 5000);
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      loadConfig();
+      
+      // Check status periodically
+      setInterval(() => {
+        if (config.apiUrl) {
+          checkApiStatus();
+        }
+      }, 30000); // Every 30 seconds
+    });
+  </script>
+</body>
+</html>
